@@ -1,0 +1,130 @@
+############################################# ####### Linking education and health ######### #############################################
+
+library(“foreign”) library(“intsvy”) library(“dplyr”) library(“ggplot2”) library(“tidyr”) library(“plyr”) library(“readr”) library(ggplot2) library(ggpmisc)
+
+####### ## Importing data
+
+# Low and mildle income countries
+
+countries = read_csv(“Lower and Middle.csv”)
+
+# Cognitive skills
+
+cognitive_skills <- read_csv(“Bibliografias/PISA 2015 SCIENCE.csv”)
+
+# Education
+
+education = read_csv(“Bibliografias/education.csv”)
+
+# Health Results
+
+health <- read_csv(“health.csv”)
+
+##### ## Selecting data
+
+expending = filter(education, education$`Series Name` == “School enrollment, secondary (% net)”)
+
+mortality_under5 = filter(health, health$`Indicator Name` == “Mortality rate, under-5 (per 1,000 live births)”)
+
+##### ## Join data
+
+data = join ( expending,mortality_under5)
+
+data = data %>% filter(data$`Country Name` %in% countries$`Country Name`)
+
+data = select(data,`Country Name`, `2017 [YR2017]`, `2017`)
+
+data = data
+
+data2 = filter(data, data$`2017 [YR2017]` != “..” )
+
+###Tranform data
+
+data2$enrollment = as.numeric(data2$`2017 [YR2017]`)
+
+##### ## Analyze data
+
+# Regression
+
+data2$mortality = data2$`2017` df <- data2
+
+model <- lm(data2$mortality ~ data2$enrollment) par(mfrow = c(2, 2)) plot(model) lmtest::bptest(model)
+
+df = data2 my.formula <- data2$mortality ~ data2$enrollment p <- ggplot(data = df, aes(x = enrollment, y = mortality)) p <- p + stat_smooth(method = “lm”, formula = y ~ x) p <- p + labs (x = “School enrollment, secondary (% net)”, y = “Under Five Mortality rate (%)”)+
+
+geom_point() +
+theme_grey(base_size = 14) +
+stat_poly_eq(formula =y ~x,
+             eq.with.lhs = "italic(hat(y))~`=`~",
+             aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+             parse = TRUE) +
+stat_fit_glance(method = 'lm', method.args = list(formula = y ~x),
+                geom='text', aes(label=paste0("P-value ", sprintf("< 0.0001", ..p.value..))),
+                label.x.npc = 'left',
+                label.y.npc = 0, size = 4)
+#### #### ANALYZE COGNITIVE SKILLS ###
+
+data_cognitive = join(mortality_under5, cognitive_skills)
+
+data_cog = data_cognitive %>% filter(data_cognitive$`Country Name` %in% countries$`Country Name`)
+
+data_cogb = select(data_cog,`Country Name`, `2015`, Avarage)
+
+data_cogb = data_cogb
+
+data_cogb$mortality = data_cogb$`2015`
+
+log_a = log(data_cogb$`2015`) log_b = log(data_cogb$Avarage)
+
+plot_ly(x=data_cogb$Avarage , y = data_cogb$`2015`)
+
+df <- (data_cogb$Avarage^2) model <- lm(data_cogb$mortality ~ poly(data_cogb$Avarage,2)) par(mfrow = c(2, 2)) plot(model) lmtest::bptest(model)
+
+p <- ggplot(data = data_cogb, aes(x = Avarage, y = mortality)) p <- p + stat_smooth(method = “lm”, formula = y ~ poly(x,2)) p <- p + labs (x = “Cognitive Level”, y = “Under Five Mortality rate (%)”)+
+
+geom_point() +
+theme_grey(base_size = 14) +
+stat_poly_eq(formula = y ~ x, rr.digits = 3,
+             eq.with.lhs = "italic(hat(y))~`=`~",
+             aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+             parse = TRUE) +
+stat_fit_glance(method = 'lm', method.args = list(formula = y ~ x), 
+                geom='text', aes(label=paste0("P-value = ", sprintf("0.070",..p.value..))),
+                label.x.npc = 'right',
+                label.y.npc = -0.25, size = 4)
+### ## ANALYZE HANUSHEK COGNITIVE SKILLS ##
+
+# cognitive skills cognitive_skills = read_csv(“Bibliografias/cognitive skills.csv”)
+
+# Health Results
+
+health_status2 = read_csv(“Bibliografias/health_status2.csv”)
+
+colnames(health_status2) = “Code”
+
+##### ## Selecting data
+
+#Selecting countries in cognitive skilss
+
+cog_regression = join(cognitive_skills, health_status2)
+
+cog_regression = cog_regression %>% filter (cog_regression$Country %in% countries)
+
+df <- cog_regression
+
+df$mortality = df$`2008` model <- lm( cog_regression$`2008` ~ (cog_regression$cognitive)) my.formula <- cog_regression$`2008` ~ cog_regression$cognitive
+
+p <- ggplot(data = df, aes(x = cognitive, y = mortality)) p <- p + stat_smooth(method = “lm”, formula = y ~ x) p <- p + labs (x = “Cognitive Level”, y = “Under Five Mortality rate (%)”)+
+
+geom_point() +
+theme_grey(base_size = 14) +
+stat_poly_eq(formula = y ~ x, rr.digits = 3,
+             eq.with.lhs = "italic(hat(y))~`=`~",
+             aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+             parse = TRUE) +
+stat_fit_glance(method = 'lm', method.args = list(formula = y ~ x), 
+                geom='text', aes(label=paste0("P-value = ", sprintf("0.070",..p.value..))),
+                label.x.npc = 'right',
+                label.y.npc = -0.25, size = 4)
+## END
+
